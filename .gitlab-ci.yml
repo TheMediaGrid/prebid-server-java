@@ -1,0 +1,34 @@
+---
+
+variables:
+  AWS_ACCOUNT: 935104690650
+  AWS_REGION: eu-west-1
+  ECR_URL: "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+  #: repository that invokes a pipeline https url
+  HTTPS_REPO_URL: "https://${AUTOCHANGELOG_BOT_USERNAME}:${AUTOCHANGELOG_BOT_PASSWORD}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+  GITHUB_UPSTREAM: https://github.com/prebid/prebid-server-java
+  CI_PROCESSOR_IMAGE: "${CI_DOCKER_REGISTRY}/devops-docker-local/gitlab-ci/devops/tools/ci-processor:0.4.21"
+
+
+
+stages:
+  - sync github
+
+sync upstream:
+  stage: sync github
+  image: $CI_PROCESSOR_IMAGE
+  script:
+    - git config --global user.name "${AUTOCHANGELOG_BOT_USERNAME}"
+    - git config --global user.email "${AUTOCHANGELOG_BOT_USER_EMAIL}"
+    - git remote set-url origin $HTTPS_REPO_URL
+    - git remote add -t master -f github $GITHUB_UPSTREAM
+    - git checkout -b $CI_DEFAULT_BRANCH origin/$CI_DEFAULT_BRANCH
+    - git branch
+    - git merge github/master
+    - git push origin $CI_DEFAULT_BRANCH
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  tags: [ "shared" ]
+
+...
